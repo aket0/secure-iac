@@ -57,16 +57,16 @@ module "network" {
 module "storage" {
   source = "../../modules/storage"
 
-  bucket_name  = "secure-iac-dev-${var.account_id}"
-  environment  = local.environment
-  kms_key_id   = var.kms_key_id
-  tags         = local.common_tags
+  bucket_name = "secure-iac-dev-${var.account_id}"
+  environment = local.environment
+  kms_key_id  = var.kms_key_id
+  tags        = local.common_tags
 }
 
 module "iam" {
   source = "../../modules/iam"
 
-  environment      = local.environment
-  allowed_bucket   = module.storage.bucket_name
-  tags             = local.common_tags
+  environment    = local.environment
+  allowed_bucket = module.storage.bucket_name
+  tags           = local.common_tags
 }

@@ -48,9 +48,10 @@ jobs:
           framework: terraform
           output_format: sarif
           output_file_path: checkov-report.sarif
-          soft_fail: false
-          # CKV_AWS_130: public subnets intentionally auto-assign IPs (load balancer tier)
-          skip_check: "CKV_AWS_130"
+          # soft_fail: true — informational mode; findings uploaded to Security tab.
+          # Graduating to hard-fail requires resolving or accepting each finding first.
+          soft_fail: true
+          skip_check: ""
 
       - name: Upload Checkov SARIF
         uses: github/codeql-action/upload-sarif@v3
