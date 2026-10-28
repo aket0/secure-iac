@@ -1,0 +1,42 @@
+# Terraform state — NEVER commit state files (may contain secrets)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.auto.tfvars
+
+# Override files (local dev only)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Tool caches
+.checkov/
+.ruff_cache/
+.venv/
+__pycache__/
+*.py[cod]
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Scan outputs
+checkov-report.json
+checkov-report.sarif
+trivy-iac-report.sarif
+
+# Secrets — never commit
+*.pem
+*.key
+secrets/
+.env*

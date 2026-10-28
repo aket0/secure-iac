@@ -1,0 +1,109 @@
+name: IaC Security
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Static Tests (no cloud account required) ──────────────────────────────
+  static-tests:
+    name: Static Security Tests (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install pytest pytest-cov ruff
+
+      - name: Run static security tests
+        run: pytest tests/ -v --tb=short
+
+      - name: Lint test code
+        run: ruff check tests/ pyproject.toml
+
+  # ── Checkov (SAST for IaC) ────────────────────────────────────────────────
+  checkov:
+    name: Checkov IaC Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: terraform
+          output_format: sarif
+          output_file_path: checkov-report.sarif
+          soft_fail: false
+          skip_check: ""  # no skips — all checks enforced
+
+      - name: Upload Checkov SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-report.sarif
+          category: checkov
+
+  # ── Trivy IaC Scan ────────────────────────────────────────────────────────
+  trivy-iac:
+    name: Trivy IaC Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy (IaC config scan)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          scan-ref: .
+          format: sarif
+          output: trivy-iac-report.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-iac-report.sarif
+          category: trivy-iac
+
+  # ── Terraform Validate (syntax only, no cloud) ────────────────────────────
+  tf-validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Terraform fmt check
+        run: terraform fmt -check -recursive
+
+      - name: Validate modules
+        run: |
+          for dir in modules/network modules/storage modules/iam; do
+            echo "Validating $dir..."
+            cd "$dir"
+            terraform init -backend=false
+            terraform validate
+            cd "$GITHUB_WORKSPACE"
+          done
